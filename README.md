@@ -33,12 +33,20 @@ Open **System Settings > Privacy & Security > Accessibility**, enable the app th
 ## Build an app bundle
 
 ```sh
-chmod +x scripts/package_app.sh
-scripts/package_app.sh
+scripts/build.sh
 open build/OptTab.app
 ```
 
 When launched as `build/OptTab.app`, grant Accessibility permission to **OptTab** itself.
+
+Useful build commands:
+
+```sh
+scripts/build.sh debug
+scripts/build.sh package
+scripts/build.sh verify
+scripts/build.sh open
+```
 
 ## Defaults
 
