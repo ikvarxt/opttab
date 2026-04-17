@@ -13,6 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var permissionRetryTimer: Timer?
     private var visibleItems: [SwitcherItem] = []
     private var isKeyboardListenerRunning = false
+    private var lastActivatedAppID: String?
+    private var windowCycleIndexByAppID: [String: Int] = [:]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -132,6 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: HotkeyControllerDelegate {
     func hotkeyDidPress() {
         DispatchQueue.main.async {
+            self.resetWindowCycleState()
             self.reloadVisibleItems()
             guard !self.visibleItems.isEmpty else { return }
             self.overlayController.show(
@@ -145,6 +148,7 @@ extension AppDelegate: HotkeyControllerDelegate {
         DispatchQueue.main.async {
             self.overlayController.hide()
             self.visibleItems = []
+            self.resetWindowCycleState()
         }
     }
 
@@ -154,11 +158,40 @@ extension AppDelegate: HotkeyControllerDelegate {
                 return
             }
 
-            self.appProvider.activate(item.app)
+            let preferredWindowIndex = self.preferredWindowIndex(for: item)
+            self.appProvider.activate(
+                item.app,
+                windowBehavior: self.settings.windowActivationBehavior,
+                preferredWindowIndex: preferredWindowIndex
+            )
             if self.settings.closeAfterSelection {
                 self.overlayController.hide()
                 self.visibleItems = []
+                self.resetWindowCycleState()
             }
         }
+    }
+
+    private func preferredWindowIndex(for item: SwitcherItem) -> Int {
+        guard settings.windowActivationBehavior == .focusOneAndCycle else {
+            lastActivatedAppID = item.app.id
+            return 0
+        }
+
+        if lastActivatedAppID == item.app.id {
+            let nextIndex = (windowCycleIndexByAppID[item.app.id] ?? 0) + 1
+            windowCycleIndexByAppID[item.app.id] = nextIndex
+            return nextIndex
+        }
+
+        lastActivatedAppID = item.app.id
+        windowCycleIndexByAppID[item.app.id] = 0
+        return 0
+    }
+
+    private func resetWindowCycleState() {
+        lastActivatedAppID = nil
+        windowCycleIndexByAppID.removeAll()
+        appProvider.resetWindowCycleSnapshots()
     }
 }

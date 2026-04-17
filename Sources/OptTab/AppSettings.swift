@@ -169,6 +169,31 @@ enum KeyboardLayout: String, CaseIterable, Identifiable {
     }
 }
 
+enum WindowActivationBehavior: String, CaseIterable, Identifiable {
+    case focusOneAndCycle
+    case bringAllWindowsForward
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .focusOneAndCycle:
+            return "Focus one window, repeat key cycles"
+        case .bringAllWindowsForward:
+            return "Bring all windows forward"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .focusOneAndCycle:
+            return "Switching focuses one window. Press the same app key again while holding the trigger to cycle that app's windows."
+        case .bringAllWindowsForward:
+            return "Switching restores and raises all windows for the selected app."
+        }
+    }
+}
+
 struct FixedAppShortcut: Codable, Hashable, Identifiable {
     var id: UUID
     var appName: String
@@ -197,6 +222,7 @@ final class AppSettings: ObservableObject {
         static let appSource = "appSource"
         static let keyOrder = "keyOrder"
         static let keyboardLayout = "keyboardLayout"
+        static let windowActivationBehavior = "windowActivationBehavior"
         static let showAppNames = "showAppNames"
         static let closeAfterSelection = "closeAfterSelection"
         static let fixedAppShortcuts = "fixedAppShortcuts"
@@ -218,6 +244,10 @@ final class AppSettings: ObservableObject {
 
     @Published var keyboardLayout: KeyboardLayout {
         didSet { defaults.set(keyboardLayout.rawValue, forKey: Keys.keyboardLayout) }
+    }
+
+    @Published var windowActivationBehavior: WindowActivationBehavior {
+        didSet { defaults.set(windowActivationBehavior.rawValue, forKey: Keys.windowActivationBehavior) }
     }
 
     @Published var showAppNames: Bool {
@@ -250,6 +280,9 @@ final class AppSettings: ObservableObject {
 
         keyboardLayout = defaults.string(forKey: Keys.keyboardLayout)
             .flatMap(KeyboardLayout.init(rawValue:)) ?? .qwerty
+
+        windowActivationBehavior = defaults.string(forKey: Keys.windowActivationBehavior)
+            .flatMap(WindowActivationBehavior.init(rawValue:)) ?? .focusOneAndCycle
 
         if defaults.object(forKey: Keys.showAppNames) == nil {
             showAppNames = true

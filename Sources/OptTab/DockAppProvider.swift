@@ -1,7 +1,10 @@
+import ApplicationServices
 import AppKit
 import Foundation
 
 final class DockAppProvider {
+    private var windowCycleSnapshotsByAppID: [String: [AXUIElement]] = [:]
+
     func loadApps(source: AppSource) -> [DockApp] {
         switch source {
         case .dockAndRunning:
@@ -11,6 +14,10 @@ final class DockAppProvider {
         case .runningOnly:
             return deduplicate(loadRunningApps())
         }
+    }
+
+    func resetWindowCycleSnapshots() {
+        windowCycleSnapshotsByAppID.removeAll()
     }
 
     func loadFixedApp(shortcut: FixedAppShortcut) -> DockApp? {
@@ -49,23 +56,76 @@ final class DockAppProvider {
         return apps
     }
 
-    func activate(_ app: DockApp) {
+    func activate(
+        _ app: DockApp,
+        windowBehavior: WindowActivationBehavior,
+        preferredWindowIndex: Int
+    ) {
         if let runningApp = runningApplication(for: app) {
             runningApp.unhide()
-            let hadRestorableWindows = AppWindowRestorer.restoreWindows(for: runningApp)
-            runningApp.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                _ = AppWindowRestorer.restoreWindows(for: runningApp)
+            let result: AppWindowRestorer.Result
+            switch windowBehavior {
+            case .focusOneAndCycle:
+                runningApp.activate(options: [.activateIgnoringOtherApps])
+                result = focusWindowFromCycleSnapshot(
+                    appID: app.id,
+                    runningApp: runningApp,
+                    preferredWindowIndex: preferredWindowIndex
+                )
+
+                if let focusedWindow = result.focusedWindow {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                        _ = AppWindowRestorer.focusWindow(
+                            focusedWindow,
+                            windowCount: result.windowCount
+                        )
+                    }
+                } else {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                        _ = self.focusWindowFromCycleSnapshot(
+                            appID: app.id,
+                            runningApp: runningApp,
+                            preferredWindowIndex: preferredWindowIndex
+                        )
+                    }
+                }
+
+            case .bringAllWindowsForward:
+                result = AppWindowRestorer.restoreAllWindows(for: runningApp)
+                runningApp.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    _ = AppWindowRestorer.restoreAllWindows(for: runningApp)
+                }
             }
 
-            if !hadRestorableWindows {
+            if !result.hasWindows {
                 openOrReopen(app)
             }
             return
         }
 
         openOrReopen(app)
+    }
+
+    private func focusWindowFromCycleSnapshot(
+        appID: String,
+        runningApp: NSRunningApplication,
+        preferredWindowIndex: Int
+    ) -> AppWindowRestorer.Result {
+        if preferredWindowIndex == 0 || windowCycleSnapshotsByAppID[appID]?.isEmpty != false {
+            windowCycleSnapshotsByAppID[appID] = AppWindowRestorer.orderedWindows(for: runningApp)
+        }
+
+        guard
+            let windows = windowCycleSnapshotsByAppID[appID],
+            let window = windows[safe: preferredWindowIndex.modulo(windows.count)]
+        else {
+            return .noWindows
+        }
+
+        return AppWindowRestorer.focusWindow(window, windowCount: windows.count)
     }
 
     private func openOrReopen(_ app: DockApp) {
@@ -177,5 +237,26 @@ final class DockAppProvider {
         return NSWorkspace.shared.runningApplications.first { runningApp in
             runningApp.bundleURL?.standardizedFileURL.path == standardizedPath
         }
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        guard indices.contains(index) else {
+            return nil
+        }
+
+        return self[index]
+    }
+}
+
+private extension Int {
+    func modulo(_ divisor: Int) -> Int {
+        guard divisor > 0 else {
+            return 0
+        }
+
+        let remainder = self % divisor
+        return remainder >= 0 ? remainder : remainder + divisor
     }
 }

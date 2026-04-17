@@ -25,6 +25,12 @@ struct SettingsView: View {
                         }
                     }
 
+                    Picker("Window behavior", selection: $settings.windowActivationBehavior) {
+                        ForEach(WindowActivationBehavior.allCases) { behavior in
+                            Text(behavior.label).tag(behavior)
+                        }
+                    }
+
                     Picker("Keyboard layout", selection: $settings.keyboardLayout) {
                         ForEach(KeyboardLayout.allCases) { layout in
                             Text(layout.label).tag(layout)
@@ -52,6 +58,7 @@ struct SettingsView: View {
                         Text("Launch at login error: \(launchAtLoginError)")
                     }
                     Text(settings.appSource.detail)
+                    Text(settings.windowActivationBehavior.detail)
                     Text(settings.keyboardLayout.detail)
                     Text(settings.keyOrder.detail)
                     Text("Fixed app keys take priority; dynamic apps skip keys reserved here.")

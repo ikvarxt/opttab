@@ -8,6 +8,7 @@ Open the menu bar item and choose **Settings...** to change:
 
 - hold key
 - app source
+- window behavior
 - keyboard layout
 - letter order
 - fixed app keys
