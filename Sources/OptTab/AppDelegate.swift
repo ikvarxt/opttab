@@ -25,7 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         observeSettings()
 
-        startKeyboardListenerOrPrompt()
+        startKeyboardListenerIfPermitted()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -33,8 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyController.stop()
     }
 
-    private func startKeyboardListenerOrPrompt() {
-        guard AccessibilityPermission.isTrusted(prompt: true) else {
+    private func startKeyboardListenerIfPermitted() {
+        guard AccessibilityPermission.isTrusted(prompt: false) else {
             isKeyboardListenerRunning = false
             statusItemController.updateStatus("Waiting for Accessibility permission")
             schedulePermissionRetry()
@@ -59,13 +59,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         permissionRetryTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             guard let self else { return }
             if AccessibilityPermission.isTrusted(prompt: false) {
-                self.startKeyboardListenerOrPrompt()
+                self.startKeyboardListenerIfPermitted()
             }
         }
     }
 
     private func requestAccessibilityPermission() {
-        _ = AccessibilityPermission.isTrusted(prompt: true)
+        if AccessibilityPermission.isTrusted(prompt: true) {
+            startKeyboardListenerIfPermitted()
+        } else {
+            statusItemController.updateStatus("Waiting for Accessibility permission")
+            schedulePermissionRetry()
+        }
     }
 
     private func openSettings() {
