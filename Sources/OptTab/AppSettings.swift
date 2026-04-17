@@ -4,12 +4,16 @@ import Combine
 enum TriggerKey: String, CaseIterable, Identifiable {
     case leftOption
     case rightOption
+    case eitherOption
     case leftCommand
     case rightCommand
+    case eitherCommand
     case leftControl
     case rightControl
+    case eitherControl
     case leftShift
     case rightShift
+    case eitherShift
 
     var id: String { rawValue }
 
@@ -19,51 +23,67 @@ enum TriggerKey: String, CaseIterable, Identifiable {
             return "Left Option"
         case .rightOption:
             return "Right Option"
+        case .eitherOption:
+            return "Either Option"
         case .leftCommand:
             return "Left Command"
         case .rightCommand:
             return "Right Command"
+        case .eitherCommand:
+            return "Either Command"
         case .leftControl:
             return "Left Control"
         case .rightControl:
             return "Right Control"
+        case .eitherControl:
+            return "Either Control"
         case .leftShift:
             return "Left Shift"
         case .rightShift:
             return "Right Shift"
+        case .eitherShift:
+            return "Either Shift"
         }
     }
 
-    var keyCode: CGKeyCode {
+    var keyCodes: Set<CGKeyCode> {
         switch self {
         case .leftOption:
-            return 58
+            return [58]
         case .rightOption:
-            return 61
+            return [61]
+        case .eitherOption:
+            return [58, 61]
         case .leftCommand:
-            return 55
+            return [55]
         case .rightCommand:
-            return 54
+            return [54]
+        case .eitherCommand:
+            return [55, 54]
         case .leftControl:
-            return 59
+            return [59]
         case .rightControl:
-            return 62
+            return [62]
+        case .eitherControl:
+            return [59, 62]
         case .leftShift:
-            return 56
+            return [56]
         case .rightShift:
-            return 60
+            return [60]
+        case .eitherShift:
+            return [56, 60]
         }
     }
 
     var flags: CGEventFlags {
         switch self {
-        case .leftOption, .rightOption:
+        case .leftOption, .rightOption, .eitherOption:
             return .maskAlternate
-        case .leftCommand, .rightCommand:
+        case .leftCommand, .rightCommand, .eitherCommand:
             return .maskCommand
-        case .leftControl, .rightControl:
+        case .leftControl, .rightControl, .eitherControl:
             return .maskControl
-        case .leftShift, .rightShift:
+        case .leftShift, .rightShift, .eitherShift:
             return .maskShift
         }
     }

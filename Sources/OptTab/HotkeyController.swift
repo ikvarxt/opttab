@@ -13,6 +13,7 @@ final class HotkeyController {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var isTriggerDown = false
+    private var activeTriggerKeyCodes = Set<CGKeyCode>()
 
     init(settings: AppSettings) {
         self.settings = settings
@@ -67,6 +68,7 @@ final class HotkeyController {
         eventTap = nil
         runLoopSource = nil
         isTriggerDown = false
+        activeTriggerKeyCodes.removeAll()
     }
 
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
@@ -81,20 +83,13 @@ final class HotkeyController {
 
         let triggerKey = settings.triggerKey
 
-        if type == .flagsChanged, keyCode == triggerKey.keyCode {
-            let isDown = event.flags.contains(triggerKey.flags)
-
-            if isDown && !isTriggerDown {
-                isTriggerDown = true
-                delegate?.hotkeyDidPress()
-                return nil
-            }
-
-            if !isDown && isTriggerDown {
-                isTriggerDown = false
-                delegate?.hotkeyDidRelease()
-                return nil
-            }
+        if type == .flagsChanged, triggerKey.keyCodes.contains(keyCode) {
+            updateTriggerState(
+                changedKeyCode: keyCode,
+                eventFlags: event.flags,
+                triggerKey: triggerKey
+            )
+            return nil
         }
 
         guard isTriggerDown else {
@@ -104,6 +99,7 @@ final class HotkeyController {
         if type == .keyDown {
             if keyCode == KeyBinding.escapeKeyCode {
                 isTriggerDown = false
+                activeTriggerKeyCodes.removeAll()
                 delegate?.hotkeyDidRelease()
                 return nil
             }
@@ -117,5 +113,30 @@ final class HotkeyController {
         }
 
         return Unmanaged.passUnretained(event)
+    }
+
+    private func updateTriggerState(
+        changedKeyCode: CGKeyCode,
+        eventFlags: CGEventFlags,
+        triggerKey: TriggerKey
+    ) {
+        let wasTriggerDown = isTriggerDown
+
+        if activeTriggerKeyCodes.contains(changedKeyCode) {
+            activeTriggerKeyCodes.remove(changedKeyCode)
+        } else if eventFlags.contains(triggerKey.flags) {
+            activeTriggerKeyCodes.insert(changedKeyCode)
+        } else {
+            activeTriggerKeyCodes.remove(changedKeyCode)
+        }
+
+        let isNowTriggerDown = !activeTriggerKeyCodes.isEmpty
+        isTriggerDown = isNowTriggerDown
+
+        if !wasTriggerDown && isNowTriggerDown {
+            delegate?.hotkeyDidPress()
+        } else if wasTriggerDown && !isNowTriggerDown {
+            delegate?.hotkeyDidRelease()
+        }
     }
 }

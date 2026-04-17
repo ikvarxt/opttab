@@ -13,6 +13,8 @@ Open the menu bar item and choose **Settings...** to change:
 - app name visibility
 - whether the bar closes immediately after switching
 
+The hold key can be a specific left/right modifier or either side of Option, Command, Control, or Shift.
+
 ## Run from source
 
 ```sh
