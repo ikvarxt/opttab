@@ -28,11 +28,26 @@ final class DockAppProvider {
 
     func activate(_ app: DockApp) {
         if let runningApp = runningApplication(for: app) {
+            runningApp.unhide()
+            let hadRestorableWindows = AppWindowRestorer.restoreWindows(for: runningApp)
             runningApp.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                _ = AppWindowRestorer.restoreWindows(for: runningApp)
+            }
+
+            if !hadRestorableWindows {
+                openOrReopen(app)
+            }
             return
         }
 
+        openOrReopen(app)
+    }
+
+    private func openOrReopen(_ app: DockApp) {
         let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = true
         NSWorkspace.shared.openApplication(at: app.url, configuration: configuration) { _, error in
             if let error {
                 NSLog("OptTab: failed to open \(app.url.path): \(error.localizedDescription)")
