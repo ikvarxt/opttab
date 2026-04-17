@@ -8,6 +8,7 @@ Open the menu bar item and choose **Settings...** to change:
 
 - hold key
 - app source
+- keyboard layout
 - letter order
 - app name visibility
 - whether the bar closes immediately after switching
@@ -36,6 +37,7 @@ When launched as `build/OptTab.app`, grant Accessibility permission to **OptTab*
 
 - Hold key: Left Option
 - App source: pinned Dock apps first, then currently running regular apps
+- Keyboard layout: QWERTY
 - Letter order: home row first, then the rest of the alphabet
 - Show app names: on
 - Close after switching: off

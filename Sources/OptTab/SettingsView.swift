@@ -22,6 +22,12 @@ struct SettingsView: View {
                     }
                 }
 
+                Picker("Keyboard layout", selection: $settings.keyboardLayout) {
+                    ForEach(KeyboardLayout.allCases) { layout in
+                        Text(layout.label).tag(layout)
+                    }
+                }
+
                 Picker("Letter order", selection: $settings.keyOrder) {
                     ForEach(KeyOrder.allCases) { order in
                         Text(order.label).tag(order)
@@ -36,6 +42,7 @@ struct SettingsView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(settings.appSource.detail)
+                Text(settings.keyboardLayout.detail)
                 Text(settings.keyOrder.detail)
                 Text("Changes apply immediately.")
             }

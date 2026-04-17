@@ -93,7 +93,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func reloadVisibleItems() {
         let apps = appProvider.loadApps(source: settings.appSource)
-        let bindings = KeyBinding.bindings(for: settings.keyOrder)
+        let bindings = KeyBinding.bindings(
+            for: settings.keyOrder,
+            layout: settings.keyboardLayout
+        )
         visibleItems = zip(bindings, apps).map { binding, app in
             SwitcherItem(app: app, keyBinding: binding)
         }

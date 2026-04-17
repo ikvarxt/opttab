@@ -124,11 +124,37 @@ enum KeyOrder: String, CaseIterable, Identifiable {
     }
 }
 
+enum KeyboardLayout: String, CaseIterable, Identifiable {
+    case qwerty
+    case programmerDvorak
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .qwerty:
+            return "QWERTY"
+        case .programmerDvorak:
+            return "Programmer Dvorak"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .qwerty:
+            return "A-Z are mapped to the standard US QWERTY letter positions."
+        case .programmerDvorak:
+            return "A-Z are mapped to Programmer Dvorak letter positions, including W/V/Z on comma, period, and slash keys."
+        }
+    }
+}
+
 final class AppSettings: ObservableObject {
     private enum Keys {
         static let triggerKey = "triggerKey"
         static let appSource = "appSource"
         static let keyOrder = "keyOrder"
+        static let keyboardLayout = "keyboardLayout"
         static let showAppNames = "showAppNames"
         static let closeAfterSelection = "closeAfterSelection"
     }
@@ -145,6 +171,10 @@ final class AppSettings: ObservableObject {
 
     @Published var keyOrder: KeyOrder {
         didSet { defaults.set(keyOrder.rawValue, forKey: Keys.keyOrder) }
+    }
+
+    @Published var keyboardLayout: KeyboardLayout {
+        didSet { defaults.set(keyboardLayout.rawValue, forKey: Keys.keyboardLayout) }
     }
 
     @Published var showAppNames: Bool {
@@ -166,6 +196,9 @@ final class AppSettings: ObservableObject {
 
         keyOrder = defaults.string(forKey: Keys.keyOrder)
             .flatMap(KeyOrder.init(rawValue:)) ?? .homeRowFirst
+
+        keyboardLayout = defaults.string(forKey: Keys.keyboardLayout)
+            .flatMap(KeyboardLayout.init(rawValue:)) ?? .qwerty
 
         if defaults.object(forKey: Keys.showAppNames) == nil {
             showAppNames = true
