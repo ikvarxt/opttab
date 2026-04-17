@@ -169,6 +169,28 @@ enum KeyboardLayout: String, CaseIterable, Identifiable {
     }
 }
 
+struct FixedAppShortcut: Codable, Hashable, Identifiable {
+    var id: UUID
+    var appName: String
+    var bundleIdentifier: String?
+    var appPath: String
+    var keyLabel: String
+
+    init(
+        id: UUID = UUID(),
+        appName: String,
+        bundleIdentifier: String?,
+        appPath: String,
+        keyLabel: String
+    ) {
+        self.id = id
+        self.appName = appName
+        self.bundleIdentifier = bundleIdentifier
+        self.appPath = appPath
+        self.keyLabel = keyLabel
+    }
+}
+
 final class AppSettings: ObservableObject {
     private enum Keys {
         static let triggerKey = "triggerKey"
@@ -177,6 +199,7 @@ final class AppSettings: ObservableObject {
         static let keyboardLayout = "keyboardLayout"
         static let showAppNames = "showAppNames"
         static let closeAfterSelection = "closeAfterSelection"
+        static let fixedAppShortcuts = "fixedAppShortcuts"
     }
 
     private let defaults: UserDefaults
@@ -205,6 +228,10 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(closeAfterSelection, forKey: Keys.closeAfterSelection) }
     }
 
+    @Published var fixedAppShortcuts: [FixedAppShortcut] {
+        didSet { persistFixedAppShortcuts() }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
@@ -231,5 +258,94 @@ final class AppSettings: ObservableObject {
         } else {
             closeAfterSelection = defaults.bool(forKey: Keys.closeAfterSelection)
         }
+
+        fixedAppShortcuts = Self.loadFixedAppShortcuts(defaults: defaults)
+    }
+
+    var canAddFixedAppShortcut: Bool {
+        fixedAppShortcuts.count < KeyBinding.availableLabels.count
+    }
+
+    @discardableResult
+    func addFixedAppShortcut(appURL: URL) -> Bool {
+        guard canAddFixedAppShortcut, !containsFixedShortcut(appURL: appURL) else {
+            return false
+        }
+
+        guard let keyLabel = firstAvailableFixedShortcutLabel() else {
+            return false
+        }
+
+        let bundle = Bundle(url: appURL)
+        let appName = bundleDisplayName(bundle: bundle)
+            ?? FileManager.default.displayName(atPath: appURL.path)
+                .replacingOccurrences(of: ".app", with: "")
+
+        fixedAppShortcuts.append(FixedAppShortcut(
+            appName: appName,
+            bundleIdentifier: bundle?.bundleIdentifier,
+            appPath: appURL.standardizedFileURL.path,
+            keyLabel: keyLabel
+        ))
+        return true
+    }
+
+    func removeFixedAppShortcut(id: FixedAppShortcut.ID) {
+        fixedAppShortcuts.removeAll { $0.id == id }
+    }
+
+    func updateFixedAppShortcut(id: FixedAppShortcut.ID, keyLabel: String) {
+        guard
+            let index = fixedAppShortcuts.firstIndex(where: { $0.id == id }),
+            fixedAppShortcuts[index].keyLabel != keyLabel
+        else {
+            return
+        }
+
+        let previousKeyLabel = fixedAppShortcuts[index].keyLabel
+        if let conflictIndex = fixedAppShortcuts.firstIndex(where: {
+            $0.id != id && $0.keyLabel == keyLabel
+        }) {
+            fixedAppShortcuts[conflictIndex].keyLabel = previousKeyLabel
+        }
+
+        fixedAppShortcuts[index].keyLabel = keyLabel
+    }
+
+    private static func loadFixedAppShortcuts(defaults: UserDefaults) -> [FixedAppShortcut] {
+        guard let data = defaults.data(forKey: Keys.fixedAppShortcuts) else {
+            return []
+        }
+
+        return (try? JSONDecoder().decode([FixedAppShortcut].self, from: data)) ?? []
+    }
+
+    private func persistFixedAppShortcuts() {
+        guard let data = try? JSONEncoder().encode(fixedAppShortcuts) else {
+            return
+        }
+
+        defaults.set(data, forKey: Keys.fixedAppShortcuts)
+    }
+
+    private func containsFixedShortcut(appURL: URL) -> Bool {
+        let standardizedPath = appURL.standardizedFileURL.path
+        let bundleIdentifier = Bundle(url: appURL)?.bundleIdentifier
+
+        return fixedAppShortcuts.contains { shortcut in
+            shortcut.appPath == standardizedPath ||
+                (bundleIdentifier != nil && shortcut.bundleIdentifier == bundleIdentifier)
+        }
+    }
+
+    private func firstAvailableFixedShortcutLabel() -> String? {
+        let usedLabels = Set(fixedAppShortcuts.map(\.keyLabel))
+        return KeyBinding.availableLabels.first { !usedLabels.contains($0) }
+    }
+
+    private func bundleDisplayName(bundle: Bundle?) -> String? {
+        guard let bundle else { return nil }
+        return bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+            ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
     }
 }

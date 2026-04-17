@@ -1,56 +1,63 @@
+import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            header
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                header
 
-            Divider()
+                Divider()
 
-            settingsSection {
-                Picker("Hold key", selection: $settings.triggerKey) {
-                    ForEach(TriggerKey.allCases) { key in
-                        Text(key.label).tag(key)
+                settingsSection {
+                    Picker("Hold key", selection: $settings.triggerKey) {
+                        ForEach(TriggerKey.allCases) { key in
+                            Text(key.label).tag(key)
+                        }
+                    }
+
+                    Picker("App source", selection: $settings.appSource) {
+                        ForEach(AppSource.allCases) { source in
+                            Text(source.label).tag(source)
+                        }
+                    }
+
+                    Picker("Keyboard layout", selection: $settings.keyboardLayout) {
+                        ForEach(KeyboardLayout.allCases) { layout in
+                            Text(layout.label).tag(layout)
+                        }
+                    }
+
+                    Picker("Letter order", selection: $settings.keyOrder) {
+                        ForEach(KeyOrder.allCases) { order in
+                            Text(order.label).tag(order)
+                        }
                     }
                 }
 
-                Picker("App source", selection: $settings.appSource) {
-                    ForEach(AppSource.allCases) { source in
-                        Text(source.label).tag(source)
-                    }
+                settingsSection {
+                    Toggle("Show app names", isOn: $settings.showAppNames)
+                    Toggle("Close bar after switching", isOn: $settings.closeAfterSelection)
                 }
 
-                Picker("Keyboard layout", selection: $settings.keyboardLayout) {
-                    ForEach(KeyboardLayout.allCases) { layout in
-                        Text(layout.label).tag(layout)
-                    }
-                }
+                fixedAppShortcutsSection
 
-                Picker("Letter order", selection: $settings.keyOrder) {
-                    ForEach(KeyOrder.allCases) { order in
-                        Text(order.label).tag(order)
-                    }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(settings.appSource.detail)
+                    Text(settings.keyboardLayout.detail)
+                    Text(settings.keyOrder.detail)
+                    Text("Fixed app keys take priority; dynamic apps skip keys reserved here.")
+                    Text("Changes apply immediately.")
                 }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
-
-            settingsSection {
-                Toggle("Show app names", isOn: $settings.showAppNames)
-                Toggle("Close bar after switching", isOn: $settings.closeAfterSelection)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(settings.appSource.detail)
-                Text(settings.keyboardLayout.detail)
-                Text(settings.keyOrder.detail)
-                Text("Changes apply immediately.")
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+            .padding(24)
         }
-        .padding(24)
-        .frame(width: 460)
+        .frame(width: 540, height: 620)
     }
 
     private var header: some View {
@@ -68,5 +75,123 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 14) {
             content()
         }
+    }
+
+    private var fixedAppShortcutsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Fixed App Keys")
+                    .font(.headline)
+
+                Spacer()
+
+                Button("Add App...") {
+                    addFixedAppShortcut()
+                }
+                .disabled(!settings.canAddFixedAppShortcut)
+            }
+
+            if settings.fixedAppShortcuts.isEmpty {
+                Text("No fixed app keys yet.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(settings.fixedAppShortcuts) { shortcut in
+                        FixedAppShortcutRow(
+                            shortcut: shortcut,
+                            keyLabel: keyLabelBinding(for: shortcut),
+                            remove: {
+                                settings.removeFixedAppShortcut(id: shortcut.id)
+                            }
+                        )
+                    }
+                }
+            }
+
+            Text("If two apps use the same key, changing one swaps the assignments.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func keyLabelBinding(for shortcut: FixedAppShortcut) -> Binding<String> {
+        Binding(
+            get: {
+                settings.fixedAppShortcuts
+                    .first(where: { $0.id == shortcut.id })?
+                    .keyLabel ?? shortcut.keyLabel
+            },
+            set: { keyLabel in
+                settings.updateFixedAppShortcut(id: shortcut.id, keyLabel: keyLabel)
+            }
+        )
+    }
+
+    private func addFixedAppShortcut() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose an app"
+        panel.prompt = "Add"
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.applicationBundle]
+
+        guard panel.runModal() == .OK, let appURL = panel.url else {
+            return
+        }
+
+        settings.addFixedAppShortcut(appURL: appURL)
+    }
+}
+
+private struct FixedAppShortcutRow: View {
+    let shortcut: FixedAppShortcut
+    @Binding var keyLabel: String
+    let remove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(nsImage: icon)
+                .resizable()
+                .frame(width: 28, height: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(shortcut.appName)
+                    .lineLimit(1)
+
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Picker("Key", selection: $keyLabel) {
+                ForEach(KeyBinding.availableLabels, id: \.self) { label in
+                    Text(label).tag(label)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 74)
+
+            Button("Remove", action: remove)
+        }
+    }
+
+    private var icon: NSImage {
+        let image = NSWorkspace.shared.icon(forFile: shortcut.appPath)
+        image.size = NSSize(width: 32, height: 32)
+        return image
+    }
+
+    private var statusText: String {
+        if FileManager.default.fileExists(atPath: shortcut.appPath) {
+            return shortcut.appPath
+        }
+
+        return "App not found at saved path"
     }
 }

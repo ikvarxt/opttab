@@ -13,6 +13,29 @@ final class DockAppProvider {
         }
     }
 
+    func loadFixedApp(shortcut: FixedAppShortcut) -> DockApp? {
+        let savedURL = URL(fileURLWithPath: shortcut.appPath)
+        let appURL: URL?
+
+        if FileManager.default.fileExists(atPath: savedURL.path) {
+            appURL = savedURL
+        } else if let bundleIdentifier = shortcut.bundleIdentifier {
+            appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
+        } else {
+            appURL = nil
+        }
+
+        guard let appURL else {
+            return nil
+        }
+
+        return makeDockApp(
+            url: appURL,
+            fallbackName: shortcut.appName,
+            runningApp: runningApplication(bundleURL: appURL)
+        )
+    }
+
     private func deduplicate(_ candidates: [DockApp]) -> [DockApp] {
         var apps: [DockApp] = []
         var seen = Set<String>()

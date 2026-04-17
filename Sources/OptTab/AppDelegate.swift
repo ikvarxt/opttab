@@ -97,9 +97,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             for: settings.keyOrder,
             layout: settings.keyboardLayout
         )
-        visibleItems = zip(bindings, apps).map { binding, app in
+        var fixedItems: [SwitcherItem] = []
+        var usedAppIDs = Set<String>()
+        var usedKeyCodes = Set<CGKeyCode>()
+
+        for shortcut in settings.fixedAppShortcuts {
+            guard
+                let app = appProvider.loadFixedApp(shortcut: shortcut),
+                let binding = KeyBinding.binding(
+                    for: shortcut.keyLabel,
+                    layout: settings.keyboardLayout
+                ),
+                !usedAppIDs.contains(app.id),
+                !usedKeyCodes.contains(binding.keyCode)
+            else {
+                continue
+            }
+
+            fixedItems.append(SwitcherItem(app: app, keyBinding: binding))
+            usedAppIDs.insert(app.id)
+            usedKeyCodes.insert(binding.keyCode)
+        }
+
+        let dynamicApps = apps.filter { !usedAppIDs.contains($0.id) }
+        let dynamicBindings = bindings.filter { !usedKeyCodes.contains($0.keyCode) }
+        let dynamicItems = zip(dynamicBindings, dynamicApps).map { binding, app in
             SwitcherItem(app: app, keyBinding: binding)
         }
+
+        visibleItems = fixedItems + dynamicItems
     }
 }
 

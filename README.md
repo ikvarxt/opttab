@@ -10,10 +10,13 @@ Open the menu bar item and choose **Settings...** to change:
 - app source
 - keyboard layout
 - letter order
+- fixed app keys
 - app name visibility
 - whether the bar closes immediately after switching
 
 The hold key can be a specific left/right modifier or either side of Option, Command, Control, or Shift.
+
+Fixed app keys reserve specific letters for specific apps. They take priority over the dynamic Dock/running app list.
 
 ## Run from source
 

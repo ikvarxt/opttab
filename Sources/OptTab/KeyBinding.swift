@@ -7,6 +7,10 @@ struct KeyBinding: Identifiable, Hashable {
     var id: CGKeyCode { keyCode }
 
     static let escapeKeyCode: CGKeyCode = 53
+    static let availableLabels = [
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+    ]
 
     static func bindings(for order: KeyOrder, layout: KeyboardLayout) -> [KeyBinding] {
         switch layout {
@@ -15,6 +19,20 @@ struct KeyBinding: Identifiable, Hashable {
         case .programmerDvorak:
             return programmerDvorakBindings(for: order)
         }
+    }
+
+    static func binding(for label: String, layout: KeyboardLayout) -> KeyBinding? {
+        let normalizedLabel = label.uppercased()
+        let bindings: [KeyBinding]
+
+        switch layout {
+        case .qwerty:
+            bindings = qwertyAlphabeticalBindings
+        case .programmerDvorak:
+            bindings = programmerDvorakAlphabeticalBindings
+        }
+
+        return bindings.first { $0.label == normalizedLabel }
     }
 
     private static func qwertyBindings(for order: KeyOrder) -> [KeyBinding] {
