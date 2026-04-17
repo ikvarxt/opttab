@@ -11,9 +11,19 @@ final class OverlayController {
 
         guard let panel else { return }
 
-        let contentView = SwitcherBarView(items: items, showsAppNames: showsAppNames)
+        let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let metrics = SwitcherBarMetrics.make(
+            itemCount: items.count,
+            availableWidth: screenFrame.width - 96,
+            showsAppNames: showsAppNames
+        )
+        let contentView = SwitcherBarView(
+            items: items,
+            showsAppNames: showsAppNames,
+            metrics: metrics
+        )
         panel.contentView = NSHostingView(rootView: contentView)
-        panel.setFrame(frame(for: items.count, showsAppNames: showsAppNames), display: true)
+        panel.setFrame(frame(screenFrame: screenFrame, metrics: metrics), display: true)
         panel.orderFrontRegardless()
     }
 
@@ -39,17 +49,14 @@ final class OverlayController {
         return panel
     }
 
-    private func frame(for itemCount: Int, showsAppNames: Bool) -> NSRect {
-        let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
-        let itemWidth: CGFloat = 82
-        let horizontalPadding: CGFloat = 32
-        let width = min(
-            screenFrame.width - 80,
-            max(360, CGFloat(itemCount) * itemWidth + horizontalPadding)
+    private func frame(screenFrame: NSRect, metrics: SwitcherBarMetrics) -> NSRect {
+        let x = screenFrame.midX - metrics.panelWidth / 2
+        let y = screenFrame.midY - metrics.panelHeight / 2
+        return NSRect(
+            x: x,
+            y: y,
+            width: metrics.panelWidth,
+            height: metrics.panelHeight
         )
-        let height: CGFloat = showsAppNames ? 118 : 92
-        let x = screenFrame.midX - width / 2
-        let y = screenFrame.midY - height / 2
-        return NSRect(x: x, y: y, width: width, height: height)
     }
 }

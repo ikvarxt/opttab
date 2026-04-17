@@ -285,7 +285,7 @@ final class AppSettings: ObservableObject {
             .flatMap(WindowActivationBehavior.init(rawValue:)) ?? .focusOneAndCycle
 
         if defaults.object(forKey: Keys.showAppNames) == nil {
-            showAppNames = true
+            showAppNames = false
         } else {
             showAppNames = defaults.bool(forKey: Keys.showAppNames)
         }

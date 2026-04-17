@@ -54,5 +54,5 @@ scripts/build.sh open
 - App source: pinned Dock apps first, then currently running regular apps
 - Keyboard layout: QWERTY
 - Letter order: home row first, then the rest of the alphabet
-- Show app names: on
+- Show app names: off
 - Close after switching: off
