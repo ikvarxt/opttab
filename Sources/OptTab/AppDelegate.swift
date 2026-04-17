@@ -1,22 +1,29 @@
 import AppKit
 import ApplicationServices
+import Combine
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let settings = AppSettings()
     private let appProvider = DockAppProvider()
     private let overlayController = OverlayController()
-    private let hotkeyController = HotkeyController()
+    private lazy var hotkeyController = HotkeyController(settings: settings)
+    private lazy var settingsWindowController = SettingsWindowController(settings: settings)
     private let statusItemController = StatusItemController()
+    private var settingsCancellables: Set<AnyCancellable> = []
     private var permissionRetryTimer: Timer?
     private var visibleItems: [SwitcherItem] = []
+    private var isKeyboardListenerRunning = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
         hotkeyController.delegate = self
         statusItemController.configure(
+            openSettings: { [weak self] in self?.openSettings() },
             requestPermission: { [weak self] in self?.requestAccessibilityPermission() },
             quit: { NSApp.terminate(nil) }
         )
+        observeSettings()
 
         startKeyboardListenerOrPrompt()
     }
@@ -28,16 +35,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startKeyboardListenerOrPrompt() {
         guard AccessibilityPermission.isTrusted(prompt: true) else {
+            isKeyboardListenerRunning = false
             statusItemController.updateStatus("Waiting for Accessibility permission")
             schedulePermissionRetry()
             return
         }
 
         if hotkeyController.start() {
-            statusItemController.updateStatus("Hold Left Option, then press a letter")
+            isKeyboardListenerRunning = true
+            updateReadyStatus()
             permissionRetryTimer?.invalidate()
             permissionRetryTimer = nil
         } else {
+            isKeyboardListenerRunning = false
             statusItemController.updateStatus("Keyboard listener could not start")
             schedulePermissionRetry()
         }
@@ -58,9 +68,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = AccessibilityPermission.isTrusted(prompt: true)
     }
 
+    private func openSettings() {
+        settingsWindowController.show()
+    }
+
+    private func observeSettings() {
+        settings.$triggerKey
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateReadyStatus()
+            }
+            .store(in: &settingsCancellables)
+    }
+
+    private func updateReadyStatus() {
+        guard isKeyboardListenerRunning else { return }
+        statusItemController.updateStatus("Hold \(settings.triggerKey.label), then press a letter")
+    }
+
     private func reloadVisibleItems() {
-        let apps = appProvider.loadDockVisibleApps()
-        visibleItems = zip(KeyBinding.defaultBindings, apps).map { binding, app in
+        let apps = appProvider.loadApps(source: settings.appSource)
+        let bindings = KeyBinding.bindings(for: settings.keyOrder)
+        visibleItems = zip(bindings, apps).map { binding, app in
             SwitcherItem(app: app, keyBinding: binding)
         }
     }
@@ -71,7 +100,10 @@ extension AppDelegate: HotkeyControllerDelegate {
         DispatchQueue.main.async {
             self.reloadVisibleItems()
             guard !self.visibleItems.isEmpty else { return }
-            self.overlayController.show(items: self.visibleItems)
+            self.overlayController.show(
+                items: self.visibleItems,
+                showsAppNames: self.settings.showAppNames
+            )
         }
     }
 
@@ -89,6 +121,10 @@ extension AppDelegate: HotkeyControllerDelegate {
             }
 
             self.appProvider.activate(item.app)
+            if self.settings.closeAfterSelection {
+                self.overlayController.hide()
+                self.visibleItems = []
+            }
         }
     }
 }

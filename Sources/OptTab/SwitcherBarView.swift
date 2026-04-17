@@ -9,12 +9,13 @@ struct SwitcherItem: Identifiable, Hashable {
 
 struct SwitcherBarView: View {
     let items: [SwitcherItem]
+    let showsAppNames: Bool
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(items) { item in
-                    SwitcherItemView(item: item)
+                    SwitcherItemView(item: item, showsAppName: showsAppNames)
                 }
             }
             .padding(.horizontal, 16)
@@ -31,6 +32,7 @@ struct SwitcherBarView: View {
 
 private struct SwitcherItemView: View {
     let item: SwitcherItem
+    let showsAppName: Bool
 
     var body: some View {
         VStack(spacing: 7) {
@@ -49,13 +51,15 @@ private struct SwitcherItemView: View {
             }
             .frame(width: 58, height: 52)
 
-            Text(item.app.name)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(width: 68)
+            if showsAppName {
+                Text(item.app.name)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: 68)
+            }
         }
-        .frame(width: 72, height: 86)
+        .frame(width: 72, height: showsAppName ? 86 : 62)
     }
 }

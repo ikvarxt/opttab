@@ -9,10 +9,14 @@ protocol HotkeyControllerDelegate: AnyObject {
 final class HotkeyController {
     weak var delegate: HotkeyControllerDelegate?
 
-    private let triggerKeyCode: CGKeyCode = 58
+    private let settings: AppSettings
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var isTriggerDown = false
+
+    init(settings: AppSettings) {
+        self.settings = settings
+    }
 
     func start() -> Bool {
         guard eventTap == nil else { return true }
@@ -75,8 +79,10 @@ final class HotkeyController {
 
         let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
 
-        if type == .flagsChanged, keyCode == triggerKeyCode {
-            let isDown = event.flags.contains(.maskAlternate)
+        let triggerKey = settings.triggerKey
+
+        if type == .flagsChanged, keyCode == triggerKey.keyCode {
+            let isDown = event.flags.contains(triggerKey.flags)
 
             if isDown && !isTriggerDown {
                 isTriggerDown = true

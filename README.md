@@ -4,6 +4,14 @@ OptTab is a small native macOS app switcher prototype.
 
 Hold **Left Option** to show a horizontal bar of Dock apps. While still holding Left Option, press the letter shown on an app to activate it. Release Left Option to close the bar.
 
+Open the menu bar item and choose **Settings...** to change:
+
+- hold key
+- app source
+- letter order
+- app name visibility
+- whether the bar closes immediately after switching
+
 ## Run from source
 
 ```sh
@@ -29,3 +37,5 @@ When launched as `build/OptTab.app`, grant Accessibility permission to **OptTab*
 - Hold key: Left Option
 - App source: pinned Dock apps first, then currently running regular apps
 - Letter order: home row first, then the rest of the alphabet
+- Show app names: on
+- Close after switching: off

@@ -3,10 +3,16 @@ import AppKit
 final class StatusItemController {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let statusMenuItem = NSMenuItem(title: "Starting", action: nil, keyEquivalent: "")
+    private var openSettings: (() -> Void)?
     private var requestPermission: (() -> Void)?
     private var quit: (() -> Void)?
 
-    func configure(requestPermission: @escaping () -> Void, quit: @escaping () -> Void) {
+    func configure(
+        openSettings: @escaping () -> Void,
+        requestPermission: @escaping () -> Void,
+        quit: @escaping () -> Void
+    ) {
+        self.openSettings = openSettings
         self.requestPermission = requestPermission
         self.quit = quit
 
@@ -16,6 +22,11 @@ final class StatusItemController {
         statusMenuItem.isEnabled = false
         menu.addItem(statusMenuItem)
         menu.addItem(.separator())
+        menu.addItem(NSMenuItem(
+            title: "Settings...",
+            action: #selector(openSettingsAction),
+            keyEquivalent: ","
+        ))
         menu.addItem(NSMenuItem(
             title: "Request Accessibility Permission",
             action: #selector(requestPermissionAction),
@@ -36,6 +47,10 @@ final class StatusItemController {
 
     func updateStatus(_ status: String) {
         statusMenuItem.title = status
+    }
+
+    @objc private func openSettingsAction() {
+        openSettings?()
     }
 
     @objc private func requestPermissionAction() {

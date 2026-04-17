@@ -2,17 +2,22 @@ import AppKit
 import Foundation
 
 final class DockAppProvider {
-    func loadDockVisibleApps() -> [DockApp] {
+    func loadApps(source: AppSource) -> [DockApp] {
+        switch source {
+        case .dockAndRunning:
+            return deduplicate(loadPinnedDockApps() + loadRunningApps())
+        case .dockOnly:
+            return deduplicate(loadPinnedDockApps())
+        case .runningOnly:
+            return deduplicate(loadRunningApps())
+        }
+    }
+
+    private func deduplicate(_ candidates: [DockApp]) -> [DockApp] {
         var apps: [DockApp] = []
         var seen = Set<String>()
 
-        for app in loadPinnedDockApps() {
-            guard !seen.contains(app.id) else { continue }
-            seen.insert(app.id)
-            apps.append(app)
-        }
-
-        for app in loadRunningApps() {
+        for app in candidates {
             guard !seen.contains(app.id) else { continue }
             seen.insert(app.id)
             apps.append(app)
