@@ -33,6 +33,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             window?.center()
         }
 
+        settings.refreshLaunchAtLoginStatus()
         NSApp.activate(ignoringOtherApps: true)
         showWindow(nil)
     }

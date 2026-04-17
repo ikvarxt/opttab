@@ -39,6 +39,7 @@ struct SettingsView: View {
                 }
 
                 settingsSection {
+                    Toggle("Launch at login", isOn: launchAtLoginBinding)
                     Toggle("Show app names", isOn: $settings.showAppNames)
                     Toggle("Close bar after switching", isOn: $settings.closeAfterSelection)
                 }
@@ -46,6 +47,10 @@ struct SettingsView: View {
                 fixedAppShortcutsSection
 
                 VStack(alignment: .leading, spacing: 8) {
+                    Text(settings.launchAtLoginStatus)
+                    if let launchAtLoginError = settings.launchAtLoginError {
+                        Text("Launch at login error: \(launchAtLoginError)")
+                    }
                     Text(settings.appSource.detail)
                     Text(settings.keyboardLayout.detail)
                     Text(settings.keyOrder.detail)
@@ -75,6 +80,13 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 14) {
             content()
         }
+    }
+
+    private var launchAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { settings.launchAtLogin },
+            set: { settings.setLaunchAtLogin($0) }
+        )
     }
 
     private var fixedAppShortcutsSection: some View {

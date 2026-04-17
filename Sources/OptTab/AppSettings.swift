@@ -232,6 +232,10 @@ final class AppSettings: ObservableObject {
         didSet { persistFixedAppShortcuts() }
     }
 
+    @Published private(set) var launchAtLogin: Bool
+    @Published private(set) var launchAtLoginStatus: String
+    @Published private(set) var launchAtLoginError: String?
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
@@ -260,6 +264,24 @@ final class AppSettings: ObservableObject {
         }
 
         fixedAppShortcuts = Self.loadFixedAppShortcuts(defaults: defaults)
+        launchAtLogin = LoginItemController.isLaunchAtLoginEnabled
+        launchAtLoginStatus = LoginItemController.statusDescription
+        launchAtLoginError = nil
+    }
+
+    func setLaunchAtLogin(_ isEnabled: Bool) {
+        do {
+            try LoginItemController.setLaunchAtLoginEnabled(isEnabled)
+            refreshLaunchAtLoginStatus()
+        } catch {
+            refreshLaunchAtLoginStatus(error: error.localizedDescription)
+        }
+    }
+
+    func refreshLaunchAtLoginStatus(error: String? = nil) {
+        launchAtLogin = LoginItemController.isLaunchAtLoginEnabled
+        launchAtLoginStatus = LoginItemController.statusDescription
+        launchAtLoginError = error
     }
 
     var canAddFixedAppShortcut: Bool {

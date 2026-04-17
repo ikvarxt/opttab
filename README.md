@@ -11,6 +11,7 @@ Open the menu bar item and choose **Settings...** to change:
 - keyboard layout
 - letter order
 - fixed app keys
+- launch at login
 - app name visibility
 - whether the bar closes immediately after switching
 
