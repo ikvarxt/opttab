@@ -15,6 +15,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isKeyboardListenerRunning = false
     private var lastActivatedAppID: String?
     private var windowCycleIndexByAppID: [String: Int] = [:]
+    private var currentDynamicKeyCodeByAppID: [String: CGKeyCode] = [:]
+    private var preferredDynamicKeyCodeByAppID: [String: CGKeyCode] = [:]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -86,6 +88,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.updateReadyStatus()
             }
             .store(in: &settingsCancellables)
+
+        settings.$fixedAppShortcuts
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.currentDynamicKeyCodeByAppID.removeAll()
+            }
+            .store(in: &settingsCancellables)
     }
 
     private func updateReadyStatus() {
@@ -123,11 +132,79 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let dynamicApps = apps.filter { !usedAppIDs.contains($0.id) }
         let dynamicBindings = bindings.filter { !usedKeyCodes.contains($0.keyCode) }
-        let dynamicItems = zip(dynamicBindings, dynamicApps).map { binding, app in
-            SwitcherItem(app: app, keyBinding: binding)
+        let dynamicBindingByAppID = stableDynamicBindings(
+            apps: dynamicApps,
+            availableBindings: dynamicBindings
+        )
+        let dynamicItems = dynamicApps.compactMap { app -> SwitcherItem? in
+            guard let binding = dynamicBindingByAppID[app.id] else {
+                return nil
+            }
+
+            return SwitcherItem(app: app, keyBinding: binding)
         }
 
         visibleItems = fixedItems + dynamicItems
+    }
+
+    private func stableDynamicBindings(
+        apps: [DockApp],
+        availableBindings: [KeyBinding]
+    ) -> [String: KeyBinding] {
+        let availableKeyCodes = Set(availableBindings.map(\.keyCode))
+        let bindingByKeyCode = Dictionary(uniqueKeysWithValues: availableBindings.map { ($0.keyCode, $0) })
+        var assignedKeyCodeByAppID: [String: CGKeyCode] = [:]
+        var reservedKeyCodes = Set<CGKeyCode>()
+
+        for app in apps {
+            guard
+                let keyCode = currentDynamicKeyCodeByAppID[app.id],
+                availableKeyCodes.contains(keyCode),
+                !reservedKeyCodes.contains(keyCode)
+            else {
+                continue
+            }
+
+            assignedKeyCodeByAppID[app.id] = keyCode
+            reservedKeyCodes.insert(keyCode)
+        }
+
+        for app in apps where assignedKeyCodeByAppID[app.id] == nil {
+            guard
+                let keyCode = preferredDynamicKeyCodeByAppID[app.id],
+                availableKeyCodes.contains(keyCode),
+                !reservedKeyCodes.contains(keyCode)
+            else {
+                continue
+            }
+
+            assignedKeyCodeByAppID[app.id] = keyCode
+            reservedKeyCodes.insert(keyCode)
+        }
+
+        var unassignedBindings = availableBindings.filter { !reservedKeyCodes.contains($0.keyCode) }
+        for app in apps where assignedKeyCodeByAppID[app.id] == nil {
+            guard !unassignedBindings.isEmpty else {
+                break
+            }
+
+            let binding = unassignedBindings.removeFirst()
+            assignedKeyCodeByAppID[app.id] = binding.keyCode
+            reservedKeyCodes.insert(binding.keyCode)
+        }
+
+        currentDynamicKeyCodeByAppID = assignedKeyCodeByAppID
+        for (appID, keyCode) in assignedKeyCodeByAppID {
+            preferredDynamicKeyCodeByAppID[appID] = keyCode
+        }
+
+        return assignedKeyCodeByAppID.reduce(into: [String: KeyBinding]()) { result, entry in
+            guard let binding = bindingByKeyCode[entry.value] else {
+                return
+            }
+
+            result[entry.key] = binding
+        }
     }
 }
 
