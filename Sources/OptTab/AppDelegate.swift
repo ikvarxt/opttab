@@ -17,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowCycleIndexByAppID: [String: Int] = [:]
     private var currentDynamicKeyCodeByAppID: [String: CGKeyCode] = [:]
     private var preferredDynamicKeyCodeByAppID: [String: CGKeyCode] = [:]
+    private var preselectedItemID: SwitcherItem.ID?
+    private var hasCommittedSelectionDuringCurrentTriggerHold = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -211,21 +213,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: HotkeyControllerDelegate {
     func hotkeyDidPress() {
         DispatchQueue.main.async {
+            self.resetTriggerHoldSelectionState()
             self.resetWindowCycleState()
             self.reloadVisibleItems()
             guard !self.visibleItems.isEmpty else { return }
             self.overlayController.show(
                 items: self.visibleItems,
-                showsAppNames: self.settings.showAppNames
+                showsAppNames: self.settings.showAppNames,
+                onSelect: { [weak self] item in
+                    self?.select(item)
+                },
+                onPreselectionChange: { [weak self] item in
+                    self?.preselectedItemID = item?.id
+                }
             )
         }
     }
 
     func hotkeyDidRelease() {
         DispatchQueue.main.async {
-            self.overlayController.hide()
-            self.visibleItems = []
-            self.resetWindowCycleState()
+            if
+                !self.hasCommittedSelectionDuringCurrentTriggerHold,
+                let item = self.preselectedItem
+            {
+                self.activate(item, closesOverlay: false)
+            }
+
+            self.dismissOverlay()
         }
     }
 
@@ -235,18 +249,46 @@ extension AppDelegate: HotkeyControllerDelegate {
                 return
             }
 
-            let preferredWindowIndex = self.preferredWindowIndex(for: item)
-            self.appProvider.activate(
-                item.app,
-                windowBehavior: self.settings.windowActivationBehavior,
-                preferredWindowIndex: preferredWindowIndex
-            )
-            if self.settings.closeAfterSelection {
-                self.overlayController.hide()
-                self.visibleItems = []
-                self.resetWindowCycleState()
-            }
+            self.select(item)
         }
+    }
+
+    private func select(_ item: SwitcherItem) {
+        activate(item, closesOverlay: settings.closeAfterSelection)
+    }
+
+    private func activate(_ item: SwitcherItem, closesOverlay: Bool) {
+        guard visibleItems.contains(item) else { return }
+
+        hasCommittedSelectionDuringCurrentTriggerHold = true
+        preselectedItemID = item.id
+
+        let preferredWindowIndex = preferredWindowIndex(for: item)
+        appProvider.activate(
+            item.app,
+            windowBehavior: settings.windowActivationBehavior,
+            preferredWindowIndex: preferredWindowIndex
+        )
+        if closesOverlay {
+            dismissOverlay()
+        }
+    }
+
+    private var preselectedItem: SwitcherItem? {
+        guard let preselectedItemID else { return nil }
+        return visibleItems.first(where: { $0.id == preselectedItemID })
+    }
+
+    private func dismissOverlay() {
+        overlayController.hide()
+        visibleItems = []
+        resetTriggerHoldSelectionState()
+        resetWindowCycleState()
+    }
+
+    private func resetTriggerHoldSelectionState() {
+        preselectedItemID = nil
+        hasCommittedSelectionDuringCurrentTriggerHold = false
     }
 
     private func preferredWindowIndex(for item: SwitcherItem) -> Int {

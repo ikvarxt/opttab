@@ -4,7 +4,12 @@ import SwiftUI
 final class OverlayController {
     private var panel: NSPanel?
 
-    func show(items: [SwitcherItem], showsAppNames: Bool) {
+    func show(
+        items: [SwitcherItem],
+        showsAppNames: Bool,
+        onSelect: @escaping (SwitcherItem) -> Void,
+        onPreselectionChange: @escaping (SwitcherItem?) -> Void
+    ) {
         if panel == nil {
             panel = makePanel()
         }
@@ -20,9 +25,11 @@ final class OverlayController {
         let contentView = SwitcherBarView(
             items: items,
             showsAppNames: showsAppNames,
-            metrics: metrics
+            metrics: metrics,
+            onSelect: onSelect,
+            onPreselectionChange: onPreselectionChange
         )
-        panel.contentView = NSHostingView(rootView: contentView)
+        panel.contentView = ClickThroughHostingView(rootView: contentView)
         panel.setFrame(frame(screenFrame: screenFrame, metrics: metrics), display: true)
         panel.orderFrontRegardless()
     }
@@ -42,7 +49,7 @@ final class OverlayController {
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = true
-        panel.ignoresMouseEvents = true
+        panel.ignoresMouseEvents = false
         panel.level = .screenSaver
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         panel.hidesOnDeactivate = false
@@ -58,5 +65,11 @@ final class OverlayController {
             width: metrics.panelWidth,
             height: metrics.panelHeight
         )
+    }
+}
+
+private final class ClickThroughHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
     }
 }

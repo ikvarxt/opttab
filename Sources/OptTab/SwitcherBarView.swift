@@ -11,15 +11,35 @@ struct SwitcherBarView: View {
     let items: [SwitcherItem]
     let showsAppNames: Bool
     let metrics: SwitcherBarMetrics
+    let onSelect: (SwitcherItem) -> Void
+    let onPreselectionChange: (SwitcherItem?) -> Void
+
+    @State private var hoveredItemID: SwitcherItem.ID?
 
     var body: some View {
         HStack(spacing: metrics.spacing) {
             ForEach(items) { item in
-                SwitcherItemView(
-                    item: item,
-                    showsAppName: showsAppNames,
-                    metrics: metrics
-                )
+                Button {
+                    onSelect(item)
+                } label: {
+                    SwitcherItemView(
+                        item: item,
+                        showsAppName: showsAppNames,
+                        metrics: metrics,
+                        isHovered: hoveredItemID == item.id
+                    )
+                }
+                .buttonStyle(.plain)
+                .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .onHover { isHovering in
+                    if isHovering {
+                        hoveredItemID = item.id
+                        onPreselectionChange(item)
+                    } else if hoveredItemID == item.id {
+                        hoveredItemID = nil
+                        onPreselectionChange(nil)
+                    }
+                }
             }
         }
         .padding(.horizontal, metrics.horizontalPadding)
@@ -90,6 +110,7 @@ private struct SwitcherItemView: View {
     let item: SwitcherItem
     let showsAppName: Bool
     let metrics: SwitcherBarMetrics
+    let isHovered: Bool
 
     var body: some View {
         VStack(spacing: 7) {
@@ -118,5 +139,11 @@ private struct SwitcherItemView: View {
             }
         }
         .frame(width: metrics.itemWidth)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.white.opacity(isHovered ? 0.16 : 0))
+        )
+        .animation(.easeOut(duration: 0.12), value: isHovered)
     }
 }
