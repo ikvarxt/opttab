@@ -1,7 +1,7 @@
 import AppKit
 
 final class StatusItemController {
-    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let statusMenuItem = NSMenuItem(title: "Starting", action: nil, keyEquivalent: "")
     private var openSettings: (() -> Void)?
     private var requestPermission: (() -> Void)?
@@ -16,7 +16,16 @@ final class StatusItemController {
         self.requestPermission = requestPermission
         self.quit = quit
 
-        statusItem.button?.title = "OptTab"
+        if let button = statusItem.button {
+            let image = NSImage(
+                systemSymbolName: "rectangle.on.rectangle",
+                accessibilityDescription: "OptTab"
+            )
+            image?.isTemplate = true
+            button.image = image
+            button.imagePosition = .imageOnly
+            button.title = ""
+        }
 
         let menu = NSMenu()
         statusMenuItem.isEnabled = false
