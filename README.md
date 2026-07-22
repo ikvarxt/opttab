@@ -7,6 +7,7 @@ Hold **Left Option** to show a horizontal bar of Dock apps. While still holding 
 Open the menu bar item and choose **Settings...** to change:
 
 - hold key
+- secondary F-key trigger
 - app source
 - window behavior
 - keyboard layout
@@ -16,7 +17,9 @@ Open the menu bar item and choose **Settings...** to change:
 - app name visibility
 - whether the bar closes immediately after switching
 
-The hold key can be a specific left/right modifier or either side of Option, Command, Control, or Shift.
+The hold key can be the Globe/fn key, a specific left/right modifier, or either side of Option, Command, Control, or Shift.
+
+You can also set an optional secondary trigger on F1-F20. This is useful for programmable keyboards that can send an F-key more easily than a real macOS Globe/fn event.
 
 Fixed app keys reserve specific letters for specific apps. They take priority over the dynamic Dock/running app list.
 
@@ -51,6 +54,7 @@ scripts/build.sh open
 ## Defaults
 
 - Hold key: Left Option
+- Secondary trigger: Off
 - App source: pinned Dock apps first, then currently running regular apps
 - Keyboard layout: QWERTY
 - Letter order: home row first, then the rest of the alphabet

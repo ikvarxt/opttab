@@ -82,6 +82,7 @@ final class HotkeyController {
         let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
 
         let triggerKey = settings.triggerKey
+        let secondaryTriggerKeyCode = settings.secondaryTriggerKey.keyCode
 
         if type == .flagsChanged, triggerKey.keyCodes.contains(keyCode) {
             updateTriggerState(
@@ -90,6 +91,18 @@ final class HotkeyController {
                 triggerKey: triggerKey
             )
             return nil
+        }
+
+        if let secondaryTriggerKeyCode, keyCode == secondaryTriggerKeyCode {
+            if type == .keyDown {
+                setTriggerState(for: keyCode, isActive: true)
+                return nil
+            }
+
+            if type == .keyUp {
+                setTriggerState(for: keyCode, isActive: false)
+                return nil
+            }
         }
 
         guard isTriggerDown else {
@@ -120,22 +133,26 @@ final class HotkeyController {
         eventFlags: CGEventFlags,
         triggerKey: TriggerKey
     ) {
+        setTriggerState(
+            for: changedKeyCode,
+            isActive: eventFlags.contains(triggerKey.flags)
+        )
+    }
+
+    private func setTriggerState(for keyCode: CGKeyCode, isActive: Bool) {
         let wasTriggerDown = isTriggerDown
 
-        if activeTriggerKeyCodes.contains(changedKeyCode) {
-            activeTriggerKeyCodes.remove(changedKeyCode)
-        } else if eventFlags.contains(triggerKey.flags) {
-            activeTriggerKeyCodes.insert(changedKeyCode)
+        if isActive {
+            activeTriggerKeyCodes.insert(keyCode)
         } else {
-            activeTriggerKeyCodes.remove(changedKeyCode)
+            activeTriggerKeyCodes.remove(keyCode)
         }
 
-        let isNowTriggerDown = !activeTriggerKeyCodes.isEmpty
-        isTriggerDown = isNowTriggerDown
+        isTriggerDown = !activeTriggerKeyCodes.isEmpty
 
-        if !wasTriggerDown && isNowTriggerDown {
+        if !wasTriggerDown && isTriggerDown {
             delegate?.hotkeyDidPress()
-        } else if wasTriggerDown && !isNowTriggerDown {
+        } else if wasTriggerDown && !isTriggerDown {
             delegate?.hotkeyDidRelease()
         }
     }

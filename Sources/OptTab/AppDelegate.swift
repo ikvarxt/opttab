@@ -91,6 +91,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &settingsCancellables)
 
+        settings.$secondaryTriggerKey
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateReadyStatus()
+            }
+            .store(in: &settingsCancellables)
+
         settings.$fixedAppShortcuts
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -101,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateReadyStatus() {
         guard isKeyboardListenerRunning else { return }
-        statusItemController.updateStatus("Hold \(settings.triggerKey.label), then press a letter")
+        statusItemController.updateStatus("Hold \(settings.triggerKeySummary), then press a letter")
     }
 
     private func reloadVisibleItems() {

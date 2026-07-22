@@ -2,6 +2,7 @@ import AppKit
 import Combine
 
 enum TriggerKey: String, CaseIterable, Identifiable {
+    case globe
     case leftOption
     case rightOption
     case eitherOption
@@ -19,6 +20,8 @@ enum TriggerKey: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
+        case .globe:
+            return "Globe / fn"
         case .leftOption:
             return "Left Option"
         case .rightOption:
@@ -48,6 +51,8 @@ enum TriggerKey: String, CaseIterable, Identifiable {
 
     var keyCodes: Set<CGKeyCode> {
         switch self {
+        case .globe:
+            return [63]
         case .leftOption:
             return [58]
         case .rightOption:
@@ -77,6 +82,8 @@ enum TriggerKey: String, CaseIterable, Identifiable {
 
     var flags: CGEventFlags {
         switch self {
+        case .globe:
+            return .maskSecondaryFn
         case .leftOption, .rightOption, .eitherOption:
             return .maskAlternate
         case .leftCommand, .rightCommand, .eitherCommand:
@@ -85,6 +92,126 @@ enum TriggerKey: String, CaseIterable, Identifiable {
             return .maskControl
         case .leftShift, .rightShift, .eitherShift:
             return .maskShift
+        }
+    }
+}
+
+enum SecondaryTriggerKey: String, CaseIterable, Identifiable {
+    case none
+    case f1
+    case f2
+    case f3
+    case f4
+    case f5
+    case f6
+    case f7
+    case f8
+    case f9
+    case f10
+    case f11
+    case f12
+    case f13
+    case f14
+    case f15
+    case f16
+    case f17
+    case f18
+    case f19
+    case f20
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .none:
+            return "Off"
+        case .f1:
+            return "F1"
+        case .f2:
+            return "F2"
+        case .f3:
+            return "F3"
+        case .f4:
+            return "F4"
+        case .f5:
+            return "F5"
+        case .f6:
+            return "F6"
+        case .f7:
+            return "F7"
+        case .f8:
+            return "F8"
+        case .f9:
+            return "F9"
+        case .f10:
+            return "F10"
+        case .f11:
+            return "F11"
+        case .f12:
+            return "F12"
+        case .f13:
+            return "F13"
+        case .f14:
+            return "F14"
+        case .f15:
+            return "F15"
+        case .f16:
+            return "F16"
+        case .f17:
+            return "F17"
+        case .f18:
+            return "F18"
+        case .f19:
+            return "F19"
+        case .f20:
+            return "F20"
+        }
+    }
+
+    var keyCode: CGKeyCode? {
+        switch self {
+        case .none:
+            return nil
+        case .f1:
+            return 122
+        case .f2:
+            return 120
+        case .f3:
+            return 99
+        case .f4:
+            return 118
+        case .f5:
+            return 96
+        case .f6:
+            return 97
+        case .f7:
+            return 98
+        case .f8:
+            return 100
+        case .f9:
+            return 101
+        case .f10:
+            return 109
+        case .f11:
+            return 103
+        case .f12:
+            return 111
+        case .f13:
+            return 105
+        case .f14:
+            return 107
+        case .f15:
+            return 113
+        case .f16:
+            return 106
+        case .f17:
+            return 64
+        case .f18:
+            return 79
+        case .f19:
+            return 80
+        case .f20:
+            return 90
         }
     }
 }
@@ -219,6 +346,7 @@ struct FixedAppShortcut: Codable, Hashable, Identifiable {
 final class AppSettings: ObservableObject {
     private enum Keys {
         static let triggerKey = "triggerKey"
+        static let secondaryTriggerKey = "secondaryTriggerKey"
         static let appSource = "appSource"
         static let keyOrder = "keyOrder"
         static let keyboardLayout = "keyboardLayout"
@@ -232,6 +360,10 @@ final class AppSettings: ObservableObject {
 
     @Published var triggerKey: TriggerKey {
         didSet { defaults.set(triggerKey.rawValue, forKey: Keys.triggerKey) }
+    }
+
+    @Published var secondaryTriggerKey: SecondaryTriggerKey {
+        didSet { defaults.set(secondaryTriggerKey.rawValue, forKey: Keys.secondaryTriggerKey) }
     }
 
     @Published var appSource: AppSource {
@@ -272,6 +404,9 @@ final class AppSettings: ObservableObject {
         triggerKey = defaults.string(forKey: Keys.triggerKey)
             .flatMap(TriggerKey.init(rawValue:)) ?? .leftOption
 
+        secondaryTriggerKey = defaults.string(forKey: Keys.secondaryTriggerKey)
+            .flatMap(SecondaryTriggerKey.init(rawValue:)) ?? .none
+
         appSource = defaults.string(forKey: Keys.appSource)
             .flatMap(AppSource.init(rawValue:)) ?? .dockAndRunning
 
@@ -300,6 +435,14 @@ final class AppSettings: ObservableObject {
         launchAtLogin = LoginItemController.isLaunchAtLoginEnabled
         launchAtLoginStatus = LoginItemController.statusDescription
         launchAtLoginError = nil
+    }
+
+    var triggerKeySummary: String {
+        guard secondaryTriggerKey != .none else {
+            return triggerKey.label
+        }
+
+        return "\(triggerKey.label) or \(secondaryTriggerKey.label)"
     }
 
     func setLaunchAtLogin(_ isEnabled: Bool) {

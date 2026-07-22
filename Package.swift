@@ -13,6 +13,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "OptTab"
+        ),
+        .testTarget(
+            name: "OptTabTests",
+            dependencies: ["OptTab"]
         )
     ]
 )

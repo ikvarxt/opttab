@@ -34,6 +34,10 @@ verify_app() {
   fi
 
   plutil -lint "$APP_DIR/Contents/Info.plist"
+  if [[ ! -f "$APP_DIR/Contents/Resources/AppIcon.icns" ]]; then
+    echo "Missing app icon at $APP_DIR/Contents/Resources/AppIcon.icns" >&2
+    exit 1
+  fi
   codesign --verify --verbose=4 "$APP_DIR"
 }
 

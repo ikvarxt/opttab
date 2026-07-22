@@ -19,6 +19,12 @@ struct SettingsView: View {
                         }
                     }
 
+                    Picker("Secondary trigger", selection: $settings.secondaryTriggerKey) {
+                        ForEach(SecondaryTriggerKey.allCases) { key in
+                            Text(key.label).tag(key)
+                        }
+                    }
+
                     Picker("App source", selection: $settings.appSource) {
                         ForEach(AppSource.allCases) { source in
                             Text(source.label).tag(source)
@@ -57,10 +63,12 @@ struct SettingsView: View {
                     if let launchAtLoginError = settings.launchAtLoginError {
                         Text("Launch at login error: \(launchAtLoginError)")
                     }
+                    Text("Secondary trigger: \(settings.secondaryTriggerKey.label)")
                     Text(settings.appSource.detail)
                     Text(settings.windowActivationBehavior.detail)
                     Text(settings.keyboardLayout.detail)
                     Text(settings.keyOrder.detail)
+                    Text("Secondary trigger is optional and is useful for programmable keyboards that can send F-keys.")
                     Text("Fixed app keys take priority; dynamic apps skip keys reserved here.")
                     Text("Changes apply immediately.")
                 }
@@ -77,7 +85,7 @@ struct SettingsView: View {
             Text("OptTab Settings")
                 .font(.title2.weight(.semibold))
 
-            Text("Hold \(settings.triggerKey.label), then press the shown letter to switch apps.")
+            Text("Hold \(settings.triggerKeySummary), then press the shown letter to switch apps.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
