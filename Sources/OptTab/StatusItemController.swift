@@ -17,12 +17,7 @@ final class StatusItemController {
         self.quit = quit
 
         if let button = statusItem.button {
-            let image = NSImage(
-                systemSymbolName: "rectangle.on.rectangle",
-                accessibilityDescription: "OptTab"
-            )
-            image?.isTemplate = true
-            button.image = image
+            button.image = Self.makeMenuBarIcon()
             button.imagePosition = .imageOnly
             button.title = ""
         }
@@ -56,6 +51,34 @@ final class StatusItemController {
 
     func updateStatus(_ status: String) {
         statusMenuItem.title = status
+    }
+
+    private static func makeMenuBarIcon() -> NSImage {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
+            NSColor.black.setStroke()
+
+            let frontWindow = NSBezierPath(
+                roundedRect: NSRect(x: 8.5, y: 4.5, width: 7.5, height: 9),
+                xRadius: 2,
+                yRadius: 2
+            )
+            frontWindow.lineWidth = 1.8
+            frontWindow.stroke()
+
+            let chevron = NSBezierPath()
+            chevron.move(to: NSPoint(x: 7, y: 14))
+            chevron.line(to: NSPoint(x: 2.5, y: 9))
+            chevron.line(to: NSPoint(x: 7, y: 4))
+            chevron.lineWidth = 2.2
+            chevron.lineCapStyle = .round
+            chevron.lineJoinStyle = .round
+            chevron.stroke()
+
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = "OptTab"
+        return image
     }
 
     @objc private func openSettingsAction() {
