@@ -352,6 +352,7 @@ final class AppSettings: ObservableObject {
         static let keyboardLayout = "keyboardLayout"
         static let windowActivationBehavior = "windowActivationBehavior"
         static let showAppNames = "showAppNames"
+        static let hidesFixedAppsInSwitcher = "hidesFixedAppsInSwitcher"
         static let closeAfterSelection = "closeAfterSelection"
         static let fixedAppShortcuts = "fixedAppShortcuts"
     }
@@ -384,6 +385,10 @@ final class AppSettings: ObservableObject {
 
     @Published var showAppNames: Bool {
         didSet { defaults.set(showAppNames, forKey: Keys.showAppNames) }
+    }
+
+    @Published var hidesFixedAppsInSwitcher: Bool {
+        didSet { defaults.set(hidesFixedAppsInSwitcher, forKey: Keys.hidesFixedAppsInSwitcher) }
     }
 
     @Published var closeAfterSelection: Bool {
@@ -423,6 +428,12 @@ final class AppSettings: ObservableObject {
             showAppNames = false
         } else {
             showAppNames = defaults.bool(forKey: Keys.showAppNames)
+        }
+
+        if defaults.object(forKey: Keys.hidesFixedAppsInSwitcher) == nil {
+            hidesFixedAppsInSwitcher = false
+        } else {
+            hidesFixedAppsInSwitcher = defaults.bool(forKey: Keys.hidesFixedAppsInSwitcher)
         }
 
         if defaults.object(forKey: Keys.closeAfterSelection) == nil {

@@ -13,6 +13,7 @@ Open the menu bar item and choose **Settings...** to change:
 - keyboard layout
 - letter order
 - fixed app keys
+- hiding fixed apps from the switcher bar while keeping their keys active
 - launch at login
 - app name visibility
 - whether the bar closes immediately after switching
@@ -59,4 +60,5 @@ scripts/build.sh open
 - Keyboard layout: QWERTY
 - Letter order: home row first, then the rest of the alphabet
 - Show app names: off
+- Hide fixed apps from bar: off
 - Close after switching: off

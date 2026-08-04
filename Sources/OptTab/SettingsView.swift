@@ -53,6 +53,7 @@ struct SettingsView: View {
                 settingsSection {
                     Toggle("Launch at login", isOn: launchAtLoginBinding)
                     Toggle("Show app names", isOn: $settings.showAppNames)
+                    Toggle("Hide fixed apps from bar", isOn: $settings.hidesFixedAppsInSwitcher)
                     Toggle("Close bar after switching", isOn: $settings.closeAfterSelection)
                 }
 
@@ -70,6 +71,7 @@ struct SettingsView: View {
                     Text(settings.keyOrder.detail)
                     Text("Secondary trigger is optional and is useful for programmable keyboards that can send F-keys.")
                     Text("Fixed app keys take priority; dynamic apps skip keys reserved here.")
+                    Text("Hidden fixed apps remain available through their assigned keys.")
                     Text("Changes apply immediately.")
                 }
                 .font(.footnote)

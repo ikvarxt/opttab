@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusItemController = StatusItemController()
     private var settingsCancellables: Set<AnyCancellable> = []
     private var permissionRetryTimer: Timer?
+    private var actionableItems: [SwitcherItem] = []
     private var visibleItems: [SwitcherItem] = []
     private var isKeyboardListenerRunning = false
     private var lastActivatedAppID: String?
@@ -153,7 +154,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return SwitcherItem(app: app, keyBinding: binding)
         }
 
-        visibleItems = fixedItems + dynamicItems
+        let items = SwitcherItems(
+            fixedItems: fixedItems,
+            dynamicItems: dynamicItems,
+            hidesFixedApps: settings.hidesFixedAppsInSwitcher
+        )
+        actionableItems = items.actionable
+        visibleItems = items.visible
     }
 
     private func stableDynamicBindings(
@@ -252,7 +259,7 @@ extension AppDelegate: HotkeyControllerDelegate {
 
     func hotkeyDidReceiveKeyCode(_ keyCode: CGKeyCode) {
         DispatchQueue.main.async {
-            guard let item = self.visibleItems.first(where: { $0.keyBinding.keyCode == keyCode }) else {
+            guard let item = self.actionableItems.first(where: { $0.keyBinding.keyCode == keyCode }) else {
                 return
             }
 
@@ -265,7 +272,7 @@ extension AppDelegate: HotkeyControllerDelegate {
     }
 
     private func activate(_ item: SwitcherItem, closesOverlay: Bool) {
-        guard visibleItems.contains(item) else { return }
+        guard actionableItems.contains(item) else { return }
 
         hasCommittedSelectionDuringCurrentTriggerHold = true
         preselectedItemID = item.id
@@ -288,6 +295,7 @@ extension AppDelegate: HotkeyControllerDelegate {
 
     private func dismissOverlay() {
         overlayController.hide()
+        actionableItems = []
         visibleItems = []
         resetTriggerHoldSelectionState()
         resetWindowCycleState()
@@ -319,5 +327,15 @@ extension AppDelegate: HotkeyControllerDelegate {
         lastActivatedAppID = nil
         windowCycleIndexByAppID.removeAll()
         appProvider.resetWindowCycleSnapshots()
+    }
+}
+
+struct SwitcherItems {
+    let actionable: [SwitcherItem]
+    let visible: [SwitcherItem]
+
+    init(fixedItems: [SwitcherItem], dynamicItems: [SwitcherItem], hidesFixedApps: Bool) {
+        actionable = fixedItems + dynamicItems
+        visible = (hidesFixedApps ? [] : fixedItems) + dynamicItems
     }
 }
