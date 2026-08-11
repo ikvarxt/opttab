@@ -14,6 +14,7 @@ Open the menu bar item and choose **Settings...** to change:
 - letter order
 - fixed app keys
 - hiding fixed apps from the switcher bar while keeping their keys active
+- whether hovering an app with the mouse highlights it and switches to it when the trigger is released
 - launch at login
 - app name visibility
 - whether the bar closes immediately after switching
@@ -61,4 +62,5 @@ scripts/build.sh open
 - Letter order: home row first, then the rest of the alphabet
 - Show app names: off
 - Hide fixed apps from bar: off
+- Switch to hovered app: on
 - Close after switching: off

@@ -54,6 +54,7 @@ struct SettingsView: View {
                     Toggle("Launch at login", isOn: launchAtLoginBinding)
                     Toggle("Show app names", isOn: $settings.showAppNames)
                     Toggle("Hide fixed apps from bar", isOn: $settings.hidesFixedAppsInSwitcher)
+                    Toggle("Switch to hovered app", isOn: $settings.activatesHoveredApp)
                     Toggle("Close bar after switching", isOn: $settings.closeAfterSelection)
                 }
 
@@ -72,6 +73,7 @@ struct SettingsView: View {
                     Text("Secondary trigger is optional and is useful for programmable keyboards that can send F-keys.")
                     Text("Fixed app keys take priority; dynamic apps skip keys reserved here.")
                     Text("Hidden fixed apps remain available through their assigned keys.")
+                    Text("With \"Switch to hovered app\" on, the app under the pointer is highlighted and activated when you release the trigger. Turning it off also removes the hover highlight. Clicking an app always switches to it.")
                     Text("Changes apply immediately.")
                 }
                 .font(.footnote)

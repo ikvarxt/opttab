@@ -234,6 +234,7 @@ extension AppDelegate: HotkeyControllerDelegate {
             self.overlayController.show(
                 items: self.visibleItems,
                 showsAppNames: self.settings.showAppNames,
+                activatesHoveredApp: self.settings.activatesHoveredApp,
                 onSelect: { [weak self] item in
                     self?.select(item)
                 },

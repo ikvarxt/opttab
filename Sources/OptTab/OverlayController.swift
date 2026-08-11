@@ -7,6 +7,7 @@ final class OverlayController {
     func show(
         items: [SwitcherItem],
         showsAppNames: Bool,
+        activatesHoveredApp: Bool,
         onSelect: @escaping (SwitcherItem) -> Void,
         onPreselectionChange: @escaping (SwitcherItem?) -> Void
     ) {
@@ -25,6 +26,7 @@ final class OverlayController {
         let contentView = SwitcherBarView(
             items: items,
             showsAppNames: showsAppNames,
+            activatesHoveredApp: activatesHoveredApp,
             metrics: metrics,
             onSelect: onSelect,
             onPreselectionChange: onPreselectionChange

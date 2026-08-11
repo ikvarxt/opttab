@@ -353,6 +353,7 @@ final class AppSettings: ObservableObject {
         static let windowActivationBehavior = "windowActivationBehavior"
         static let showAppNames = "showAppNames"
         static let hidesFixedAppsInSwitcher = "hidesFixedAppsInSwitcher"
+        static let activatesHoveredApp = "activatesHoveredApp"
         static let closeAfterSelection = "closeAfterSelection"
         static let fixedAppShortcuts = "fixedAppShortcuts"
     }
@@ -389,6 +390,10 @@ final class AppSettings: ObservableObject {
 
     @Published var hidesFixedAppsInSwitcher: Bool {
         didSet { defaults.set(hidesFixedAppsInSwitcher, forKey: Keys.hidesFixedAppsInSwitcher) }
+    }
+
+    @Published var activatesHoveredApp: Bool {
+        didSet { defaults.set(activatesHoveredApp, forKey: Keys.activatesHoveredApp) }
     }
 
     @Published var closeAfterSelection: Bool {
@@ -434,6 +439,12 @@ final class AppSettings: ObservableObject {
             hidesFixedAppsInSwitcher = false
         } else {
             hidesFixedAppsInSwitcher = defaults.bool(forKey: Keys.hidesFixedAppsInSwitcher)
+        }
+
+        if defaults.object(forKey: Keys.activatesHoveredApp) == nil {
+            activatesHoveredApp = true
+        } else {
+            activatesHoveredApp = defaults.bool(forKey: Keys.activatesHoveredApp)
         }
 
         if defaults.object(forKey: Keys.closeAfterSelection) == nil {

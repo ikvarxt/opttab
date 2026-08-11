@@ -10,6 +10,7 @@ struct SwitcherItem: Identifiable, Hashable {
 struct SwitcherBarView: View {
     let items: [SwitcherItem]
     let showsAppNames: Bool
+    let activatesHoveredApp: Bool
     let metrics: SwitcherBarMetrics
     let onSelect: (SwitcherItem) -> Void
     let onPreselectionChange: (SwitcherItem?) -> Void
@@ -32,6 +33,8 @@ struct SwitcherBarView: View {
                 .buttonStyle(.plain)
                 .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .onHover { isHovering in
+                    guard activatesHoveredApp else { return }
+
                     if isHovering {
                         hoveredItemID = item.id
                         onPreselectionChange(item)
