@@ -49,6 +49,21 @@ enum TriggerKey: String, CaseIterable, Identifiable {
         }
     }
 
+    var glyph: String {
+        switch self {
+        case .globe:
+            return "fn"
+        case .leftOption, .rightOption, .eitherOption:
+            return "⌥"
+        case .leftCommand, .rightCommand, .eitherCommand:
+            return "⌘"
+        case .leftControl, .rightControl, .eitherControl:
+            return "⌃"
+        case .leftShift, .rightShift, .eitherShift:
+            return "⇧"
+        }
+    }
+
     var keyCodes: Set<CGKeyCode> {
         switch self {
         case .globe:
@@ -289,9 +304,9 @@ enum KeyboardLayout: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .qwerty:
-            return "A-Z are mapped to the standard US QWERTY letter positions."
+            return "A-Z map to standard US QWERTY key positions."
         case .programmerDvorak:
-            return "A-Z are mapped to Programmer Dvorak letter positions, including W/V/Z on comma, period, and slash keys."
+            return "A-Z map to Programmer Dvorak positions, with W/V/Z on comma, period, slash."
         }
     }
 }
@@ -305,7 +320,7 @@ enum WindowActivationBehavior: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .focusOneAndCycle:
-            return "Focus one window, repeat key cycles"
+            return "Focus one window"
         case .bringAllWindowsForward:
             return "Bring all windows forward"
         }
@@ -314,11 +329,18 @@ enum WindowActivationBehavior: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .focusOneAndCycle:
-            return "Switching focuses one window. Press the same app key again while holding the trigger to cycle that app's windows."
+            return "Press the same key again while holding to cycle that app's windows."
         case .bringAllWindowsForward:
-            return "Switching restores and raises all windows for the selected app."
+            return "Restores and raises every window of the selected app."
         }
     }
+}
+
+struct FixedAppKeySwap: Equatable {
+    let assignedAppName: String
+    let assignedKeyLabel: String
+    let displacedAppName: String
+    let displacedKeyLabel: String
 }
 
 struct FixedAppShortcut: Codable, Hashable, Identifiable {
@@ -514,22 +536,33 @@ final class AppSettings: ObservableObject {
         fixedAppShortcuts.removeAll { $0.id == id }
     }
 
-    func updateFixedAppShortcut(id: FixedAppShortcut.ID, keyLabel: String) {
+    /// Returns the swap when another app had to give up the letter, so callers can report it.
+    @discardableResult
+    func updateFixedAppShortcut(id: FixedAppShortcut.ID, keyLabel: String) -> FixedAppKeySwap? {
         guard
             let index = fixedAppShortcuts.firstIndex(where: { $0.id == id }),
             fixedAppShortcuts[index].keyLabel != keyLabel
         else {
-            return
+            return nil
         }
 
         let previousKeyLabel = fixedAppShortcuts[index].keyLabel
+        var swap: FixedAppKeySwap?
+
         if let conflictIndex = fixedAppShortcuts.firstIndex(where: {
             $0.id != id && $0.keyLabel == keyLabel
         }) {
             fixedAppShortcuts[conflictIndex].keyLabel = previousKeyLabel
+            swap = FixedAppKeySwap(
+                assignedAppName: fixedAppShortcuts[index].appName,
+                assignedKeyLabel: keyLabel,
+                displacedAppName: fixedAppShortcuts[conflictIndex].appName,
+                displacedKeyLabel: previousKeyLabel
+            )
         }
 
         fixedAppShortcuts[index].keyLabel = keyLabel
+        return swap
     }
 
     private static func loadFixedAppShortcuts(defaults: UserDefaults) -> [FixedAppShortcut] {

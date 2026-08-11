@@ -4,7 +4,7 @@ OptTab is a small native macOS app switcher prototype.
 
 Hold **Left Option** to show a horizontal bar of Dock apps. While still holding Left Option, press the letter shown on an app to activate it. Release Left Option to close the bar.
 
-Open the menu bar item and choose **Settings...** to change:
+Open the menu bar item and choose **Settings...** for three tabs: **General**, **Switcher Bar** (with a live preview of the real bar over your desktop), and **Fixed Apps**. Settings you can change:
 
 - hold key
 - secondary F-key trigger

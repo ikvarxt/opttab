@@ -21,6 +21,15 @@ struct KeyBinding: Identifiable, Hashable {
         }
     }
 
+    static func label(forKeyCode keyCode: CGKeyCode, layout: KeyboardLayout) -> String? {
+        switch layout {
+        case .qwerty:
+            return qwertyAlphabeticalBindings.first { $0.keyCode == keyCode }?.label
+        case .programmerDvorak:
+            return programmerDvorakAlphabeticalBindings.first { $0.keyCode == keyCode }?.label
+        }
+    }
+
     static func binding(for label: String, layout: KeyboardLayout) -> KeyBinding? {
         let normalizedLabel = label.uppercased()
         let bindings: [KeyBinding]

@@ -8,19 +8,57 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         self.settings = settings
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 620),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: SettingsMetrics.paneWidth,
+                height: SettingsTab.general.contentHeight(fixedAppCount: 0)
+            ),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
 
-        window.title = "OptTab Settings"
-        window.contentView = NSHostingView(rootView: SettingsView(settings: settings))
+        window.title = SettingsTab.general.title
+        window.titlebarAppearsTransparent = true
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.contentMinSize = NSSize(
+            width: SettingsMetrics.paneWidth,
+            height: SettingsMetrics.paneHeight
+        )
+        window.contentView = NSHostingView(
+            rootView: SettingsView(
+                settings: settings,
+                onLayoutChange: { [weak window] tab, contentHeight in
+                    window?.title = tab.title
+                    Self.resize(window, toContentHeight: contentHeight)
+                }
+            )
+        )
         window.center()
         window.isReleasedWhenClosed = false
 
         super.init(window: window)
         window.delegate = self
+    }
+
+    /// Grows and shrinks from the title bar down, the way tabbed macOS settings windows do.
+    private static func resize(_ window: NSWindow?, toContentHeight height: CGFloat) {
+        guard let window else { return }
+
+        let contentSize = NSSize(width: window.frame.width, height: height)
+        let frameSize = window.frameRect(forContentRect: NSRect(origin: .zero, size: contentSize)).size
+        guard abs(frameSize.height - window.frame.height) > 1 else { return }
+
+        let frame = NSRect(
+            x: window.frame.minX,
+            y: window.frame.maxY - frameSize.height,
+            width: window.frame.width,
+            height: frameSize.height
+        )
+
+        window.setFrame(frame, display: true, animate: true)
     }
 
     @available(*, unavailable)
