@@ -8,14 +8,28 @@ struct DockApp: Identifiable, Hashable {
     let isRunning: Bool
 
     var icon: NSImage {
-        let image = DockAppIconProvider.icon(for: url, appName: name)
-        image.size = NSSize(width: 64, height: 64)
-        return image
+        DockAppIconProvider.icon(for: url, appName: name, size: 64)
     }
 }
 
 enum DockAppIconProvider {
-    static func icon(for appURL: URL, appName: String) -> NSImage {
+    /// SwiftUI reads icons on every body pass, and each uncached load costs ~0.25ms.
+    /// Main thread only, which is where every call site already lives.
+    private static var cachedIcons: [String: NSImage] = [:]
+
+    static func icon(for appURL: URL, appName: String, size: CGFloat) -> NSImage {
+        let key = "\(appURL.path)|\(size)"
+        if let cached = cachedIcons[key] {
+            return cached
+        }
+
+        let image = loadIcon(for: appURL, appName: appName)
+        image.size = NSSize(width: size, height: size)
+        cachedIcons[key] = image
+        return image
+    }
+
+    private static func loadIcon(for appURL: URL, appName: String) -> NSImage {
         if let iconURL = companionIconURL(for: appURL, appName: appName),
            let image = NSImage(contentsOf: iconURL) {
             return image

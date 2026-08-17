@@ -44,6 +44,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     /// Grows and shrinks from the title bar down, the way tabbed macOS settings windows do.
+    ///
+    /// Driven by Core Animation on purpose: `setFrame(display:animate:)` runs its animation
+    /// synchronously and blocks the main thread for the whole duration, which is 350ms on the
+    /// largest pane-to-pane jump and reads as a stutter on every tab switch.
     private static func resize(_ window: NSWindow?, toContentHeight height: CGFloat) {
         guard let window else { return }
 
@@ -58,7 +62,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             height: frameSize.height
         )
 
-        window.setFrame(frame, display: true, animate: true)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            window.animator().setFrame(frame, display: true)
+        }
     }
 
     @available(*, unavailable)

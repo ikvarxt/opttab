@@ -176,9 +176,11 @@ private struct FixedAppShortcutRow: View {
     }
 
     private var icon: NSImage {
-        let image = NSWorkspace.shared.icon(forFile: shortcut.appPath)
-        image.size = NSSize(width: 32, height: 32)
-        return image
+        DockAppIconProvider.icon(
+            for: URL(fileURLWithPath: shortcut.appPath),
+            appName: shortcut.appName,
+            size: 32
+        )
     }
 
     private var statusText: String {
