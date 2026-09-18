@@ -101,7 +101,7 @@ final class DockAppProvider {
             }
 
             if !result.hasWindows {
-                openOrReopen(app)
+                reopenIfNeeded(app, runningApp: runningApp)
             }
             return
         }
@@ -115,7 +115,9 @@ final class DockAppProvider {
         preferredWindowIndex: Int
     ) -> AppWindowRestorer.Result {
         if preferredWindowIndex == 0 || windowCycleSnapshotsByAppID[appID]?.isEmpty != false {
-            windowCycleSnapshotsByAppID[appID] = AppWindowRestorer.orderedWindows(for: runningApp)
+            windowCycleSnapshotsByAppID[appID] = AppWindowRestorer
+                .orderedWindowList(for: runningApp)
+                .windows
         }
 
         guard
@@ -126,6 +128,34 @@ final class DockAppProvider {
         }
 
         return AppWindowRestorer.focusWindow(window, windowCount: windows.count)
+    }
+
+    /// A reopen asks LaunchServices to hand the app a fresh window, which only `.app` bundles
+    /// understand; for a bare executable it starts a second copy instead, and for a CLI tool that
+    /// means a new Terminal window beside the one already running.
+    static func allowsReopenWhileRunning(url: URL) -> Bool {
+        url.pathExtension.caseInsensitiveCompare("app") == .orderedSame
+    }
+
+    private func reopenIfNeeded(_ app: DockApp, runningApp: NSRunningApplication) {
+        guard DockAppProvider.allowsReopenWhileRunning(url: app.url) else { return }
+        guard !AppWindowRestorer.hasOnScreenWindows(pid: runningApp.processIdentifier) else { return }
+
+        // An app builds its AX tree lazily on the first query, so a miss right after activate()
+        // usually means "not ready" rather than "no windows". Reopen only once a later query
+        // succeeds and still reports nothing, otherwise a slow app gets a duplicate window.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            let lookup = AppWindowRestorer.orderedWindowList(for: runningApp)
+            guard
+                !lookup.lookupFailed,
+                lookup.windows.isEmpty,
+                !AppWindowRestorer.hasOnScreenWindows(pid: runningApp.processIdentifier)
+            else {
+                return
+            }
+
+            self.openOrReopen(app)
+        }
     }
 
     private func openOrReopen(_ app: DockApp) {

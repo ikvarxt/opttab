@@ -1,5 +1,6 @@
 import ApplicationServices
 import AppKit
+import CoreGraphics
 
 enum AppWindowRestorer {
     struct Result {
@@ -11,6 +12,12 @@ enum AppWindowRestorer {
         }
 
         static let noWindows = Result(windowCount: 0, focusedWindow: nil)
+    }
+
+    struct WindowList {
+        let windows: [AXUIElement]
+        /// The AX query itself errored, so `windows` being empty says nothing about the app.
+        let lookupFailed: Bool
     }
 
     static func focusWindow(
@@ -47,11 +54,33 @@ enum AppWindowRestorer {
     }
 
     static func orderedWindows(for runningApp: NSRunningApplication) -> [AXUIElement] {
-        let application = AXUIElementCreateApplication(runningApp.processIdentifier)
-        return orderedWindows(for: application)
+        orderedWindowList(for: runningApp).windows
     }
 
-    private static func windows(for application: AXUIElement) -> [AXUIElement] {
+    static func orderedWindowList(for runningApp: NSRunningApplication) -> WindowList {
+        let application = AXUIElementCreateApplication(runningApp.processIdentifier)
+        return orderedWindowList(for: application)
+    }
+
+    /// Answers before the app has built its AX tree, and needs no Accessibility permission.
+    /// Only ever a veto: the window server reports the current Space, so a false here can still
+    /// mean a window sits on another Space or minimized, and AX stays the authority on that.
+    static func hasOnScreenWindows(pid: pid_t) -> Bool {
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+
+        guard
+            let entries = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]]
+        else {
+            return false
+        }
+
+        return entries.contains { entry in
+            (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == pid
+                && (entry[kCGWindowLayer as String] as? NSNumber)?.intValue == 0
+        }
+    }
+
+    private static func windows(for application: AXUIElement) -> WindowList {
         var rawValue: CFTypeRef?
         let error = AXUIElementCopyAttributeValue(
             application,
@@ -60,17 +89,21 @@ enum AppWindowRestorer {
         )
 
         guard error == .success else {
-            return []
+            NSLog("OptTab: AX window query failed with error \(error.rawValue)")
+            return WindowList(windows: [], lookupFailed: true)
         }
 
-        return rawValue as? [AXUIElement] ?? []
+        return WindowList(windows: rawValue as? [AXUIElement] ?? [], lookupFailed: false)
     }
 
-    private static func orderedWindows(for application: AXUIElement) -> [AXUIElement] {
-        let windows = windows(for: application)
-        let visibleWindows = windows.filter { !isMinimized($0) }
-        let minimizedWindows = windows.filter { isMinimized($0) }
-        return visibleWindows + minimizedWindows
+    private static func orderedWindowList(for application: AXUIElement) -> WindowList {
+        let lookup = windows(for: application)
+        let visibleWindows = lookup.windows.filter { !isMinimized($0) }
+        let minimizedWindows = lookup.windows.filter { isMinimized($0) }
+        return WindowList(
+            windows: visibleWindows + minimizedWindows,
+            lookupFailed: lookup.lookupFailed
+        )
     }
 
     private static func focus(_ window: AXUIElement) {
